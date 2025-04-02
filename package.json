@@ -1,0 +1,29 @@
+{
+  "name": "noteflow",
+  "version": "1.0.0",
+  "description": "this is a notes api",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "start",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/nimapabc/noteflow.git"
+  },
+  "author": "Yash",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/nimapabc/noteflow/issues"
+  },
+  "homepage": "https://gitlab.com/nimapabc/noteflow#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.1",
+    "nodemon": "^3.1.9"
+  }
+}

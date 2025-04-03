@@ -14,4 +14,4 @@ userRouter.post('/login',(req,res,next)=>{
     userController.loginController(req,res,next);
 })
 
-export default userRouter;
+export default userRouter; 

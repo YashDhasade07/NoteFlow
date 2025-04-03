@@ -38,7 +38,7 @@ constructor(){
             let user = await this.userRepository.loginModel(email,password);
             let isPassword = await bcrypt.compare(password,user.password);
             if(isPassword){
-            let token = jwt.sign({userName : user.userName, email: user.email}, 'aeshdytrnckdsdhyc',{expiresIn: '3h'})
+            let token = jwt.sign({userId : user._id, email: user.email}, 'aeshdytrnckdsdhyc',{expiresIn: '3h'})
                 console.log(token)
                 res.status(200).send(`loged in sucessfully your token is: ${token}`)
             }else{
@@ -59,6 +59,6 @@ constructor(){
     //         // res.status(200).send('user created sucessfully')
     //     } catch (error) {
     //         console.log(error)
-    //     }
+    //     } 
     // }
 }

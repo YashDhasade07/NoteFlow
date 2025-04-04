@@ -15,4 +15,11 @@ NoteSchema.pre('save', function(next){
     next()
 })
 
+NoteSchema.pre('findOneAndUpdate', function(next) {
+    this.set({ updatedAt: new Date() });
+    // this.updatedAt = new Date();
+    next();
+});
+
+
 export default NoteSchema;

@@ -5,9 +5,9 @@ let sharedNotesRouter = express.Router();
 let sharedNotesController = new SharedNoteControler()
 
 
-// notesRouter.get('/',jwtAuth,(req,res,next)=>{
-//     notesController.getNotesControler(req,res,next)
-// })
+sharedNotesRouter.get('/',jwtAuth,(req,res,next)=>{
+    sharedNotesController.getSharedNoteToMeController(req,res,next)
+})
 
 // notesRouter.get('/:id',jwtAuth,(req,res,next)=>{
 //     notesController.getNoteByIdController(req,res,next)
@@ -25,9 +25,9 @@ sharedNotesRouter.post('/',jwtAuth,(req,res,next)=>{
 //     notesController.deleteNotesController(req,res,next)
 // })
 
-// notesRouter.put('/:id',jwtAuth,(req,res,next)=>{
-//     notesController.updateNoteController(req,res,next)
-// })
+sharedNotesRouter.put('/:id',jwtAuth,(req,res,next)=>{
+    sharedNotesController.updateSharedNote(req,res,next)
+})
 
 // notesRouter.patch('/:id',jwtAuth,(req,res,next)=>{
 //     notesController.switchArchiveController(req,res,next)

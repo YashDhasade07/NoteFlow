@@ -10,28 +10,23 @@ export default class SharedNoteControler {
       //let ownerId, sharedWith, noteId, permission;
       let data = req.body;
       let ownerId = req.user.userId;
-      let result = await this.sharedNoteRepository.createSharedNote(ownerId,data);
+      data = { ...data, ownerId };
+      let result = await this.sharedNoteRepository.createSharedNote(data);
       res.status(200).json(result);
     } catch (error) {
       console.log(error);
     }
   }
 
-  // async getNoteByIdController(req, res, next) {
-  //   try {
-  //     console.log('hii')
-  //     let { id } = req.params;
-  //     let { userId } = req.user;
-  //     let result = await this.notesRepository.getNoteById(id, userId);
-  //     if (result.note) {
-  //       res.status(200).json(result.note);
-  //     } else {
-  //       res.status(400).json(result);
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  async getSharedNoteToMeController(req, res, next) {
+    try {
+      let { userId } = req.user;
+      let result = await this.sharedNoteRepository.getSharedNoteToMe(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   // async getNoteByCategoryController(req, res, next) {
   //   try {
@@ -40,7 +35,7 @@ export default class SharedNoteControler {
   //     let { userId } = req.user;
   //     let result = await this.notesRepository.getNoteByCategory(category.toString(), userId);
   //       res.status(400).json(result);
-      
+
   //   } catch (error) {
   //     console.log(error);
   //   }
@@ -75,19 +70,18 @@ export default class SharedNoteControler {
   //   }
   // }
 
-  // async updateNoteController(req, res, next) {
-  //   try {
-  //     let { userId } = req.user;
-  //     let notesId = req.params.id;
-  //     let data = req.body;
-  //     let result = await this.notesRepository.updateNote(userId, notesId, data);
-  //     res.status(200).json(result);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  async updateSharedNote(req, res, next) {
+    try {
+      let { userId } = req.user;
+      let notesId = req.params.id;
+      let data = req.body;
+      let result = await this.sharedNoteRepository.updateSharedNote(userId, notesId, data);
+      res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  
   // async switchArchiveController(req, res, next) {
   //   try {
   //     let { userId } = req.user;

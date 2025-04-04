@@ -8,12 +8,24 @@ export default class SharedNoteRepository {
     this.notesRepository = new NoteRepository();
   }
 
-  async createSharedNote(ownerId,data) {
+  async createSharedNote(data) {
     try {
       // ownerId, sharedId, noteId, permission
-      let note = await this.notesRepository.getNoteById(data.noteId);
-      if (note.userId == data.userId) {
-        let sharedNote = new SharedNoteModel({ data });
+      let response = await this.notesRepository.getNoteById(
+        data.noteId,
+        data.ownerId
+      );
+
+      if (!response) {
+        return {
+          status: false,
+          message: "Note not found",
+        };
+      }
+
+      let note = response.note;
+      if (note.userId == data.ownerId) {
+        let sharedNote = new SharedNoteModel(data);
         await sharedNote.save();
         return sharedNote;
       } else {
@@ -27,42 +39,58 @@ export default class SharedNoteRepository {
     }
   }
 
-  // async getNotes(email) {
-  //   try {
-  //     let notes = await NoteModel.aggregate([
-  //       {
-  //         $lookup: {
-  //           from: "users",
-  //           localField: "userId",
-  //           foreignField: "_id",
-  //           as: "userDetails",
-  //         },
-  //       },
-  //       {
-  //         $match: {
-  //           "userDetails.email": email,
-  //           isArchived: false,
-  //         },
-  //       },
-  //       {
-  //         $project: {
-  //           userId: 1,
-  //           title: 1,
-  //           content: 1,
-  //           isArchived: 1,
-  //           categories: 1,
-  //           createdAt: 1,
-  //           updatedAt: 1,
-  //         },
-  //       },
-  //     ]);
-  //     return notes;
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
-
+  async getSharedNoteToMe(userId) {
+    try {
+      console.log(userId);
+      let objUserId = new mongoose.Types.ObjectId(userId)
+      let notes = await SharedNoteModel.aggregate([
+        {
+          $match: {
+            sharedWith : objUserId
+          },
+        },{
+          $lookup:{
+            from: "notes",
+            localField: "noteId",
+            foreignField: "_id",
+            as: "notes"
+          }
+        },{
+          $project:{
+            notes: 1,
+            _id :0
+          }
+        }
+        
+      ]);
+      return notes;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
   // async getNoteById(id, userId) {
+    async updateSharedNote(userId, noteId, data) {
+      try {
+        let shared = await SharedNoteModel.findOne({noteId,sharedWith:userId});
+        if (!shared) {
+          return { status: false, message: "Either you have no access to note or noteId dosent exist" };
+        }
+        console.log('shared: ', shared);
+        if (shared.permission == 'edit') {
+          console.log('hii');
+          let note = await this.notesRepository.updateNote(shared.ownerId.toString(),noteId,data)
+          return note;
+        } else {
+          return {
+            status: false,
+            message: "You only have read only access to this note",
+          };
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
   //   try {
   //     let note = await NoteModel.findById(id);
   //     if (!note) {
@@ -121,27 +149,6 @@ export default class SharedNoteRepository {
   //   }
   // }
 
-  // async updateNote(userId, noteId, data) {
-  //   try {
-  //     let note = await NoteModel.findById(noteId);
-  //     if (!note) {
-  //       return { status: false, message: "No note exist with this id" };
-  //     }
-  //     if (note.userId == userId) {
-  //       let result = await NoteModel.findByIdAndUpdate(noteId, data, {
-  //         new: true,
-  //       });
-  //       return result;
-  //     } else {
-  //       return {
-  //         status: false,
-  //         message: "You are not authorised to update this note",
-  //       };
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
 
   // async switchArchive(userId, noteId) {
   //   try {

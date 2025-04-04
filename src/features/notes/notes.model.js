@@ -117,6 +117,8 @@ export default class NoteRepository {
       if (!note) {
         return { status: false, message: "No note exist with this id" };
       }
+      console.log('searched note: ', note.userId);
+      console.log('user id: ', userId);
       if (note.userId == userId) {
         let result = await NoteModel.findByIdAndUpdate(noteId, data, {
           new: true,

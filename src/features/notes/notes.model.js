@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import NoteSchema from "./notes.schema.js";
-
+import ApplicationError from "../../middlewares/applicationError.js";
 let NoteModel = mongoose.model("note", NoteSchema);
 export default class NoteRepository {
   async getNotes(email) {
@@ -35,6 +35,7 @@ export default class NoteRepository {
       return notes;
     } catch (error) {
       console.log(error);
+      throw new ApplicationError("Something went wrong while fetching notes", 400)
     }
   }
 
@@ -42,72 +43,87 @@ export default class NoteRepository {
     try {
       let note = await NoteModel.findById(id);
       if (!note) {
-        return { status: false, message: "No note exist with this id" };
-      }
-      if (note.userId == userId) {
+        // return { status: false, message: "No note exist with this id" };
+        throw new ApplicationError("No note exist with this id", 404)
+        
+    }
+    if (note.userId == userId) {
         // await NoteModel.findByIdAndDelete(id);
         return { status: true, note };
-      } else {
-        return {
-          status: false,
-          message: "You are not authorised to access this note",
-        };
+    } else {
+        // return {
+            //   status: false,
+            //   message: "You are not authorised to access this note",
+            // };
+            throw new ApplicationError("You are not authorised to access this note", 403)
       }
     } catch (error) {
-      console.log(error);
+        if(error instanceof ApplicationError){
+            throw error
+        }
+        throw new ApplicationError("Something went wrong while fetching notes", 400)
     }
-  }
+}
 
-  async getNoteByCategory(category, userId) {
+async getNoteByCategory(category, userId) {
     let objectUserId = new mongoose.Types.ObjectId(userId);
     try {
-      let notes = await NoteModel.aggregate([
-        {
-          $match: {
-            userId: objectUserId,
-            categories: { $in: [category] },
-            isArchived: false,
-          },
-        },
-      ]);
-    //   console.log(notes);
-      return notes;
+        let notes = await NoteModel.aggregate([
+            {
+                $match: {
+                    userId: objectUserId,
+                    categories: { $in: [category] },
+                    isArchived: false,
+                },
+            },
+        ]);
+        //   console.log(notes);
+        return notes;
     } catch (error) {
-      console.log(error);
+        console.log(error);
+        throw new ApplicationError("Something went wrong while fetching notes by category", 400)
     }
-  }
+}
 
-  async createNote(userId, title, content, categories) {
+async createNote(userId, title, content, categories) {
     try {
-      let noteObj = { userId, title, content };
-      if (categories instanceof Array) {
-        noteObj = { ...noteObj, categories };
-      }
-      let note = new NoteModel(noteObj);
-      await note.save();
-      return note;
+        let noteObj = { userId, title, content };
+        if (categories instanceof Array) {
+            noteObj = { ...noteObj, categories };
+        }
+        let note = new NoteModel(noteObj);
+        await note.save();
+        return note;
     } catch (error) {
-      console.log(error);
+        console.log(error);
+        throw new ApplicationError("Something went wrong while creating note", 400)
     }
-  }
+}
 
-  async deleteNote(userId, noteId) {
+async deleteNote(userId, noteId) {
     try {
-      let note = await NoteModel.findById(noteId);
-      if (!note) {
-        return { status: false, message: "No note exist with this id" };
-      }
-      if (note.userId == userId) {
-        await NoteModel.findByIdAndDelete(noteId);
-        return { status: true, message: "Note deleted successfully" };
-      } else {
-        return {
-          status: false,
-          message: "You are not authorised to delete this note",
-        };
-      }
+        let note = await NoteModel.findById(noteId);
+        if (!note) {
+            // return { status: false, message: "No note exist with this id" };
+            throw new ApplicationError("No note exist with this id", 404)
+        }
+        if (note.userId == userId) {
+            await NoteModel.findByIdAndDelete(noteId);
+            return { status: true, message: "Note deleted successfully" };
+        } else {
+            // return {
+            //     status: false,
+            //     message: "You are not authorised to delete this note",
+            // };
+            throw new ApplicationError("You are not authorised to delete this note", 401)
+        }
     } catch (error) {
-      console.log(error);
+        console.log(error);
+        if(error instanceof ApplicationError){
+            throw error
+        }
+        throw new ApplicationError("Something went wrong while deleting note", 400)
+      
     }
   }
 
@@ -115,55 +131,57 @@ export default class NoteRepository {
     try {
       let note = await NoteModel.findById(noteId);
       if (!note) {
-        return { status: false, message: "No note exist with this id" };
+        // return { status: false, message: "No note exist with this id" };
+        throw new ApplicationError("No note exist with this id", 404)
+
       }
-      console.log('searched note: ', note.userId);
-      console.log('user id: ', userId);
       if (note.userId == userId) {
         let result = await NoteModel.findByIdAndUpdate(noteId, data, {
           new: true,
         });
         return result;
       } else {
-        return {
-          status: false,
-          message: "You are not authorised to update this note",
-        };
+        // return {
+        //   status: false,
+        //   message: "You are not authorised to update this note",
+        // };
+        throw new ApplicationError("You are not authorised to update this note", 401)
       }
     } catch (error) {
-      console.log(error);
-    }
+        console.log(error);
+        if(error instanceof ApplicationError){
+            throw error
+        }
+        throw new ApplicationError("Something went wrong while updating note", 400)    }
   }
 
   async switchArchive(userId, noteId) {
     try {
       let note = await NoteModel.findById(noteId);
       if (!note) {
-        return { status: false, message: "No note exist with this id" };
+        // return { status: false, message: "No note exist with this id" };
+        throw new ApplicationError("No note exist with this id", 404)
       }
       if (note.userId == userId) {
         note.isArchived = !note.isArchived;
 
         await note.save();
         // await NoteModel.updateOne(noteId, note);
-        return "switched archive status";
+        return `switched archive status to ${note.isArchived}`;
       } else {
-        return {
-          status: false,
-          message: "You are not authorised to update this note",
-        };
+        // return {
+        //   status: false,
+        //   message: "You are not authorised to update this note",
+        // };
+        throw new ApplicationError("You are not authorised to update this note", 401)
       }
     } catch (error) {
-      console.log(error);
+        console.log(error);
+        if(error instanceof ApplicationError){
+            throw error
+        }
+        throw new ApplicationError("Something went wrong while updating note", 400) 
     }
   }
 }
-// }
 
-//     userId:{type: mongoose.Schema.Types.ObjectId, ref: "user", required: true},
-//     title: {type: String, required: true,},
-//     content: {type: String},
-//     isArchived: {type: Boolean, default: false},
-//     categories: [{type: String}],
-//     createdAt: {type: Date, default : Date.now()},
-//     updatedAt: {type: Date, default : Date.now() ,}

@@ -10,8 +10,7 @@ let jwtAuth =async (req,res,next) =>{
         req.user = user;
         next()
     } catch (error) {
-        console.log(error)
-    }
+        res.status(401).send('unauthorized token');    }
 }
 
 export default jwtAuth;

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import SharedNoteSchema from "./sharedNotes.schema.js";
 import NoteRepository from "../notes/notes.model.js";
+import ApplicationError from "../../middlewares/applicationError.js";
 
 let SharedNoteModel = mongoose.model("sharednote", SharedNoteSchema);
 export default class SharedNoteRepository {
@@ -17,10 +18,24 @@ export default class SharedNoteRepository {
       );
 
       if (!response) {
-        return {
-          status: false,
-          message: "Note not found",
-        };
+        // return {
+        //   status: false,
+        //   message: "Note not found",
+        // };
+        throw new ApplicationError("Note access not found", 404);
+      }
+      
+      let shared = await SharedNoteModel.findOne({
+        noteId: data.noteId,
+        sharedWith: data.sharedWith,
+      });
+      
+      if (shared) {
+        // return {
+        //   status: false,
+        //   message: "user already has access to this note",
+        // };
+        throw new ApplicationError("user already has access to this note", 409);
       }
 
       let note = response.note;
@@ -29,156 +44,152 @@ export default class SharedNoteRepository {
         await sharedNote.save();
         return sharedNote;
       } else {
-        return {
-          status: false,
-          message: "You are not authorised to access this note",
-        };
+        // return {
+        //   status: false,
+        //   message: "You are not authorised to access this note",
+        // };
+         throw new ApplicationError("You are not authorised to access this note", 403)
       }
     } catch (error) {
       console.log(error);
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+      throw new ApplicationError(
+        "Something went wrong while creating notes",
+        400
+      );
     }
   }
 
   async getSharedNoteToMe(userId) {
     try {
-      console.log(userId);
-      let objUserId = new mongoose.Types.ObjectId(userId)
+      let objUserId = new mongoose.Types.ObjectId(userId);
       let notes = await SharedNoteModel.aggregate([
         {
           $match: {
-            sharedWith : objUserId
+            sharedWith: objUserId,
           },
-        },{
-          $lookup:{
+        },
+        {
+          $lookup: {
             from: "notes",
             localField: "noteId",
             foreignField: "_id",
-            as: "notes"
-          }
-        },{
-          $project:{
+            as: "notes",
+          },
+        },
+        {
+          $project: {
             notes: 1,
-            _id :0
-          }
-        }
-        
+            _id: 0,
+            permission:1,
+            sharedAccessId: `$_id`
+          },
+        },
       ]);
       return notes;
     } catch (error) {
-      console.log(error);
+      console.log(error)
+      throw new ApplicationError(
+        "Something went wrong while fetching notes",
+        400
+      );
     }
   }
-  
+
   // async getNoteById(id, userId) {
-    async updateSharedNote(userId, noteId, data) {
-      try {
-        let shared = await SharedNoteModel.findOne({noteId,sharedWith:userId});
-        if (!shared) {
-          return { status: false, message: "Either you have no access to note or noteId dosent exist" };
-        }
-        console.log('shared: ', shared);
-        if (shared.permission == 'edit') {
-          console.log('hii');
-          let note = await this.notesRepository.updateNote(shared.ownerId.toString(),noteId,data)
-          return note;
-        } else {
-          return {
-            status: false,
-            message: "You only have read only access to this note",
-          };
-        }
-      } catch (error) {
-        console.log(error);
+  async updateSharedNote(userId, noteId, data) {
+    try {
+      let shared = await SharedNoteModel.findOne({
+        noteId,
+        sharedWith: userId,
+      });
+      if (!shared) {
+        // return {
+        //   status: false,
+        //   message:
+        //     "Either you have no access to note or else noteId dosent exist",
+        // };
+        throw new ApplicationError("Either you have no access to note or else noteId dosent exist", 404);
       }
+      if (shared.permission == "edit") {
+        let note = await this.notesRepository.updateNote(
+          shared.ownerId.toString(),
+          noteId,
+          data
+        );
+        return note;
+      } else {
+        // return {
+        //   status: false,
+        //   message: "You only have read only access to this note",
+        // };
+        throw new ApplicationError("You only have read only access to this note", 401);
+      }
+    } catch (error) {
+      console.log(error);
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+      throw new ApplicationError(
+        "Something went wrong while updating notes access",
+        400
+      );
     }
-  //   try {
-  //     let note = await NoteModel.findById(id);
-  //     if (!note) {
-  //       return { status: false, message: "No note exist with this id" };
-  //     }
-  //     if (note.userId == userId) {
-  //       await NoteModel.findByIdAndDelete(id);
-  //       return { status: true, note };
-  //     } else {
-  //       return {
-  //         status: false,
-  //         message: "You are not authorised to access this note",
-  //       };
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  }
 
-  // async getNoteByCategory(category, userId) {
-  //   let objectUserId = new mongoose.Types.ObjectId(userId);
-  //   try {
-  //     let notes = await NoteModel.aggregate([
-  //       {
-  //         $match: {
-  //           userId: objectUserId,
-  //           categories: { $in: [category] },
-  //           isArchived: false,
-  //         },
-  //       },
-  //     ]);
-  //   //   console.log(notes);
-  //     return notes;
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  async removeSharedAccess(userId, id) {
+    try {
+      let shared = await SharedNoteModel.findOne({ _id: id, ownerId: userId });
+      if (!shared) {
+        // return {
+        //   status: false,
+        //   message:
+        //     "Either you have no access to note or else noteId dosent exist",
+        // };
+        throw new ApplicationError("Either you have no access to note or else noteId dosent exist", 404);
+      }
 
-  // async deleteNote(userId, noteId) {
-  //   try {
-  //     let note = await NoteModel.findById(noteId);
-  //     if (!note) {
-  //       return { status: false, message: "No note exist with this id" };
-  //     }
-  //     if (note.userId == userId) {
-  //       await NoteModel.findByIdAndDelete(noteId);
-  //       return { status: true, message: "Note deleted successfully" };
-  //     } else {
-  //       return {
-  //         status: false,
-  //         message: "You are not authorised to delete this note",
-  //       };
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+      await SharedNoteModel.findByIdAndDelete(id);
+      return { status: true, message: "Access removed successfully" };
+    } catch (error) {
+      cconsole.log(error);
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+      throw new ApplicationError(
+        "Something went wrong while removing notes access",
+        400
+      );
+    }
+  }
 
+  async updateAccess(userId, id, permission) {
+    try {
+      let shared = await SharedNoteModel.findOne({ _id: id, ownerId: userId });
+      if (!shared) {
+        // return {
+        //   status: false,
+        //   message:
+        //     "Either you have no access to note or else noteId dosent exist",
+        // };
+        throw new ApplicationError("Either you have no access to note or else noteId dosent exist", 404);
 
-  // async switchArchive(userId, noteId) {
-  //   try {
-  //     let note = await NoteModel.findById(noteId);
-  //     if (!note) {
-  //       return { status: false, message: "No note exist with this id" };
-  //     }
-  //     if (note.userId == userId) {
-  //       note.isArchived = !note.isArchived;
+      }
+      shared.permission = permission;
 
-  //       await note.save();
-  //       // await NoteModel.updateOne(noteId, note);
-  //       return "switched archive status";
-  //     } else {
-  //       return {
-  //         status: false,
-  //         message: "You are not authorised to update this note",
-  //       };
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+      await shared.save();
+      return { status: true, message: `updated the access to ${permission}` };
+    } catch (error) {
+      console.log(error);
+      if (error instanceof ApplicationError) {
+        throw error;
+      }
+      throw new ApplicationError(
+        "Something went wrong while updating notes access",
+        400
+      );
+    }
+  }
 }
-// }
-
-//     userId:{type: mongoose.Schema.Types.ObjectId, ref: "user", required: true},
-//     title: {type: String, required: true,},
-//     content: {type: String},
-//     isArchived: {type: Boolean, default: false},
-//     categories: [{type: String}],
-//     createdAt: {type: Date, default : Date.now()},
-//     updatedAt: {type: Date, default : Date.now() ,}

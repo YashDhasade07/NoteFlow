@@ -7,4 +7,5 @@ let userSchema = mongoose.Schema({
     createdAt: {type: Date, default : Date.now()}
 })
 
+// userSchema.index({ email: 1 });
 export default userSchema;
